@@ -34,7 +34,7 @@ url = args.url
 force = args.force
 out = args.out
 verbose = args.verbose
-sleep = int(args.sleep)
+sleep = args.sleep
 
 usernames = []
 with open(args.userlist, "r") as userlist:
@@ -52,8 +52,8 @@ lockout_counter = 0
 lockout_question = False
 for username in usernames:
 
-    if username_counter>0:
-        time.sleep(int(sleep))
+    if username_counter>0 and sleep>0:        
+        time.sleep(sleep)
         
     username_counter += 1
     print(f"{username_counter} of {username_count} users tested", end="\r")
