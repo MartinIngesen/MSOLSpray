@@ -192,6 +192,7 @@ parser.add_argument(
 parser.add_argument(
     "-j",
     "--jitter",
+    type=int,
     default=0,
     help="Maximum of additional delay given in percentage over base delay (default: %(default)s).",
 )
