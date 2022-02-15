@@ -68,7 +68,8 @@ optional arguments:
   -H HEADERS, --header HEADERS
                         Extra header to include in the request (can be used multiple times).
   -A NAME, --user-agent NAME
-                        Send User-Agent NAME to server.
+                        Send User-Agent NAME to server (default: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
+                        Chrome/58.0.3029.110 Safari/537.36").
   --rua                 Send random User-Agent in each request.
   -v, --verbose         Prints usernames that could exist in case of invalid password.
 
