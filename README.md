@@ -24,7 +24,7 @@ pip3 install requests
 
 You will need a userlist file with target email-addresses one per line. 
 ```
-usage: MSOLSpray.py [-h] -u FILE -p PASSWORD [-o OUTFILE] [-f] [--url URL]
+usage: MSOLSpray.py [-h] (-u USERNAME | -U FILE) (-p PASSWORD | -P FILE) [-o OUTFILE] [--url URL] [-f] [--shuffle] [--slack SLACK] [-s SLEEP] [--pause PAUSE] [-l PERCENT] [-v]
 
 This is a pure Python rewrite of dafthack's MSOLSpray (https://github.com/dafthack/MSOLSpray/) which is written in PowerShell. All credit goes to him!
 
@@ -32,21 +32,27 @@ This script will perform password spraying against Microsoft Online accounts (Az
 
 optional arguments:
   -h, --help            show this help message and exit
-  -u FILE, --userlist FILE
-                        File filled with usernames one-per-line in the format
-                        'user@domain.com'. (Required)
+  -u USERNAME, --username USERNAME
+                        Single username
+  -U FILE, --usernames FILE
+                        File containing usernames in the format 'user@domain'.
   -p PASSWORD, --password PASSWORD
-                        A single password that will be used to perform the
-                        password spray. (Required)
+                        Single password.
+  -P FILE, --passwords FILE
+                        File containing passwords, one per line.
   -o OUTFILE, --out OUTFILE
-                        A file to output valid results to.
-  -f, --force           Forces the spray to continue and not stop when
-                        multiple account lockouts are detected.
-  --url URL             The URL to spray against (default is
-                        https://login.microsoft.com). Potentially useful if
-                        pointing at an API Gateway URL generated with
-                        something like FireProx to randomize the IP address
-                        you are authenticating from.
+                        A file to output valid results to. (default: valid_creds.txt)
+  --url URL             The URL to spray against (default: https://login.microsoft.com). Potentially useful if pointing at an API Gateway URL generated with something like
+                        FireProx to randomize the IP address you are authenticating from.
+  -f, --force           Forces the spray to continue and not stop when multiple account lockouts are detected.
+  --shuffle             Shuffle user list
+  --slack SLACK         Slack webhook for sending notifications (default: None)
+  -s SLEEP, --sleep SLEEP
+                        Sleep this many seconds between tries (default: 0)
+  --pause PAUSE         Pause (in minutes) between each iteration (default: 15)
+  -l PERCENT, --max-lockout PERCENT
+                        Maximum lockouts (in percent) to be observed before ask to abort execution. (default: 10)
+  -v, --verbose         Prints usernames that could exist in case of invalid password
 
 EXAMPLE USAGE:
 This command will use the provided userlist and attempt to authenticate to each account with a password of Winter2020.

