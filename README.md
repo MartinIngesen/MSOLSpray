@@ -15,16 +15,22 @@ Lastly, this tool works well with [FireProx](https://github.com/ustayready/firep
 ## Quick Start
 ### Requirements
 
-You will need to install the python library `requests`. You can do this by running:
+The easiest way to install dependencies is with `poetry`. You can do this by running:
 ```
-pip3 install requests
+poetry install
+```
+
+Alternatively, you can use `pip`:
+```
+pip install -r requirements.txt
 ```
 
 ### MSOLSpray
 
 You will need a userlist file with target email-addresses one per line. 
 ```
-usage: MSOLSpray.py [-h] (-u USERNAME | -U FILE) (-p PASSWORD | -P FILE) [-o OUTFILE] [--url URL] [-f] [--shuffle] [--slack SLACK] [-s SLEEP] [--pause PAUSE] [-l PERCENT] [-v]
+usage: MSOLSpray.py [-h] (-u USERNAME | -U FILE) (-p PASSWORD | -P FILE) [-o OUTFILE] [--url [URL ...]] [-f] [--shuffle] [-a {0,1,2}] [--notify NOTIFY]
+                    [--notify-actions NOTIFY_ACTIONS] [-s SLEEP] [--pause PAUSE] [-j JITTER] [-l PERCENT] [-H HEADERS] [-A NAME] [--rua] [-v]
 
 This is a pure Python rewrite of dafthack's MSOLSpray (https://github.com/dafthack/MSOLSpray/) which is written in PowerShell. All credit goes to him!
 
@@ -41,18 +47,30 @@ optional arguments:
   -P FILE, --passwords FILE
                         File containing passwords, one per line.
   -o OUTFILE, --out OUTFILE
-                        A file to output valid results to. (default: valid_creds.txt)
-  --url URL             The URL to spray against (default: https://login.microsoft.com). Potentially useful if pointing at an API Gateway URL generated with something like
-                        FireProx to randomize the IP address you are authenticating from.
+                        A file to output valid results to (default: valid_creds.txt).
+  --url [URL ...]       The URL(s) to spray against (default: https://login.microsoft.com). Potentially useful if pointing at an API Gateway URL generated
+                        with something like FireProx to randomize the IP address you are authenticating from.
   -f, --force           Forces the spray to continue and not stop when multiple account lockouts are detected.
-  --shuffle             Shuffle user list
-  --slack SLACK         Slack webhook for sending notifications (default: None)
+  --shuffle             Shuffle user list.
+  -a {0,1,2}, --auto-remove {0,1,2}
+                        Auto remove accounts from next iterations (0: valid credentials (default), 1: previous + nonexistent/disabled, 2: previous +
+                        locked).
+  --notify NOTIFY       Slack webhook for sending notifications about results (default: None).
+  --notify-actions NOTIFY_ACTIONS
+                        Slack webhook for sending notifications about needed actions (default: same as --notify).
   -s SLEEP, --sleep SLEEP
-                        Sleep this many seconds between tries (default: 0)
-  --pause PAUSE         Pause (in minutes) between each iteration (default: 15)
+                        Sleep this many seconds between tries (default: 0).
+  --pause PAUSE         Pause (in minutes) between each iteration (default: 15).
+  -j JITTER, --jitter JITTER
+                        Maximum of additional delay given in percentage over base delay (default: 0).
   -l PERCENT, --max-lockout PERCENT
-                        Maximum lockouts (in percent) to be observed before ask to abort execution. (default: 10)
-  -v, --verbose         Prints usernames that could exist in case of invalid password
+                        Maximum lockouts (in percent) to be observed before ask to abort execution. (default: 10).
+  -H HEADERS, --header HEADERS
+                        Extra header to include in the request (can be used multiple times).
+  -A NAME, --user-agent NAME
+                        Send User-Agent NAME to server.
+  --rua                 Send random User-Agent in each request.
+  -v, --verbose         Prints usernames that could exist in case of invalid password.
 
 EXAMPLE USAGE:
 This command will use the provided userlist and attempt to authenticate to each account with a password of Winter2020.
@@ -60,4 +78,7 @@ This command will use the provided userlist and attempt to authenticate to each 
 
 This command uses the specified FireProx URL to spray from randomized IP addresses and writes the output to a file. See this for FireProx setup: https://github.com/ustayready/fireprox.
     python3 MSOLSpray.py --userlist ./userlist.txt --password P@ssword --url https://api-gateway-endpoint-id.execute-api.us-east-1.amazonaws.com/fireprox --out valid-users.txt
+
+TIPS:
+[1] When using along with FireProx, pass option -H "X-My-X-Forwarded-For: 127.0.0.1" to spoof origin IP.
 ```
