@@ -243,6 +243,7 @@ passwords = [args.password] if args.password else get_list_from_file(args.passwo
 
 interrupt = False
 url_idx = 0
+start_time = time.strftime("%Y%m%d%H%M%S")
 
 for pindex, password in enumerate(passwords):
     if interrupt:
@@ -417,6 +418,10 @@ for pindex, password in enumerate(passwords):
                 break
 
             # else: continue even though lockout is detected
+    # end of user iteration
+    # write current users to file
+    with open(start_time + "_currentusers.txt", "w") as user_file:
+        user_file.write("\n".join(usernames.sort()))
 
     if results != "":
         with open(args.out, "a") as out_file:
