@@ -421,7 +421,8 @@ for pindex, password in enumerate(passwords):
     # end of user iteration
     # write current users to file
     with open(start_time + "_currentusers.txt", "w") as user_file:
-        user_file.write("\n".join(usernames.sort()))
+        usernames.sort()
+        user_file.write("\n".join(usernames))
 
     if results != "":
         with open(args.out, "a") as out_file:
