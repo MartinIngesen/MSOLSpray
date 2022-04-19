@@ -52,7 +52,7 @@ class SlackWebhook:
 
     # Post a json payload to slack webhook URL
     def __post_payload(self, payload):
-        response = requests.post(self.webhook_url, json=payload)
+        response = requests.post(self.webhook_url, json=payload, timeout=4)
         if response.status_code != 200:
             print(
                 "%s[Error] %s%s"
@@ -102,6 +102,9 @@ def assertions(args):
     assert args.pause >= 0
     assert args.jitter in range(101)
     assert args.max_lockout >= 0
+    assert args.timeout >= 0
+    if args.proxy:
+        assert "://" in args.proxy, "Malformed proxy. Missing schema?"
 
 
 parser = argparse.ArgumentParser(
@@ -134,6 +137,12 @@ parser.add_argument(
     metavar="OUTFILE",
     default="valid_creds.txt",
     help="A file to output valid results to (default: %(default)s).",
+)
+parser.add_argument(
+    "-x",
+    "--proxy",
+    type=str,
+    help="Use proxy on requests (e.g. http://127.0.0.1:8080)",
 )
 parser.add_argument(
     "--url",
@@ -224,6 +233,12 @@ parser.add_argument(
     "--rua", action="store_true", help="Send random User-Agent in each request."
 )
 parser.add_argument(
+    "--timeout",
+    default=4,
+    type=float,
+    help="Timeout for requests (default: %(default)s)"
+)
+parser.add_argument(
     "-v",
     "--verbose",
     action="store_true",
@@ -242,7 +257,12 @@ usernames = [args.username] if args.username else get_list_from_file(args.userna
 passwords = [args.password] if args.password else get_list_from_file(args.passwords)
 
 args.url = args.url.split(',')
-
+proxies = None
+if args.proxy:
+    proxies = {
+        "http": args.proxy,
+        "https": args.proxy,
+    }
 interrupt = False
 url_idx = 0
 start_time = time.strftime("%Y%m%d%H%M%S")
@@ -307,7 +327,24 @@ for pindex, password in enumerate(passwords):
         url = args.url[url_idx % len(args.url)]
         url_idx += 1
 
-        r = requests.post(f"{url}/common/oauth2/token", headers=headers, data=body)
+        issued = False
+        retry = 3
+        while (not issued and retry > 0):
+            try:
+                r = requests.post(f"{url}/common/oauth2/token", headers=headers, data=body, proxies=proxies, verify=False, timeout=args.timeout)
+            except Exception as e:
+                retry -= 1
+                if retry == 0:
+                    print(
+                        f"{text_colors.red}Error: {e}{text_colors.reset}"
+                    )
+            else:
+                issued = True
+        if not issued:
+            with open(start_time + "_untested.txt", "a") as untested_file:
+                untested_file.write(f"{username}:{password}\n")
+            continue
+        
 
         if r.status_code == 200:
             print(

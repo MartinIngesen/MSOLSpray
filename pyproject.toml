@@ -7,7 +7,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-requests = "^2.27.1"
+requests = {extras = ["socks"], version = "^2.27.1"}
 fake-useragent = "^0.1.11"
 
 [tool.poetry.dev-dependencies]
