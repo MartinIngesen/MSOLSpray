@@ -138,8 +138,8 @@ parser.add_argument(
 parser.add_argument(
     "--url",
     default="https://login.microsoft.com",
-    help="The URL(s) to spray against (default: %(default)s). Potentially useful if pointing at an API Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from.",
-    nargs="*",
+    help=("A comma-separated list of URL(s) to spray against (default: %(default)s)."
+        " Potentially useful if pointing at an API Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from."),
 )
 parser.add_argument(
     "-f",
@@ -218,7 +218,7 @@ parser.add_argument(
     default="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
     dest="user_agent",
     metavar="NAME",
-    help="Send User-Agent %(metavar)s to server (default: \"%(default)s\").",
+    help='Send User-Agent %(metavar)s to server (default: "%(default)s").',
 )
 parser.add_argument(
     "--rua", action="store_true", help="Send random User-Agent in each request."
@@ -240,6 +240,8 @@ if args.notify and args.notify_actions is None:
 
 usernames = [args.username] if args.username else get_list_from_file(args.usernames)
 passwords = [args.password] if args.password else get_list_from_file(args.passwords)
+
+args.url = args.url.split(',')
 
 interrupt = False
 url_idx = 0
@@ -290,9 +292,10 @@ for pindex, password in enumerate(passwords):
             "Content-Type": "application/x-www-form-urlencoded",
         }
         # include custom headers
-        for header in args.headers:
-            h, v = header.split(":")
-            headers[h.strip()] = v.strip()
+        if args.headers:
+            for header in args.headers:
+                h, v = header.split(":", 1)
+                headers[h.strip()] = v.strip()
         # set user-agent
         if args.rua:
             ua = UserAgent(fallback=args.user_agent)  # avoid exception with fallback
