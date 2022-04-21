@@ -2,6 +2,7 @@
 import requests
 import argparse
 import time
+import urllib3
 from math import trunc
 from random import randrange, shuffle
 from fake_useragent import UserAgent
@@ -105,6 +106,9 @@ def assertions(args):
     if args.proxy:
         assert "://" in args.proxy, "Malformed proxy. Missing schema?"
 
+
+# disable ssl warnings
+urllib3.disable_warnings()
 
 parser = argparse.ArgumentParser(
     description=description,
