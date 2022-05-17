@@ -29,8 +29,9 @@ pip install -r requirements.txt
 
 You will need a userlist file with target email-addresses one per line. 
 ```
-usage: MSOLSpray.py [-h] (-u USERNAME | -U FILE) (-p PASSWORD | -P FILE) [-o OUTFILE] [--url [URL ...]] [-f] [--shuffle] [-a {0,1,2}] [--notify NOTIFY]
-                    [--notify-actions NOTIFY_ACTIONS] [-s SLEEP] [--pause PAUSE] [-j JITTER] [-l PERCENT] [-H HEADERS] [-A NAME] [--rua] [-v]
+usage: MSOLSpray.py [-h] (-u USERNAME | -U FILE) (-p PASSWORD | -P FILE) [-o OUTFILE] [-x PROXY] [--url URL] [-f] [--shuffle] [-a {0,1,2}]
+                    [--notify NOTIFY] [--notify-actions NOTIFY_ACTIONS] [-s SLEEP] [--pause PAUSE] [-j JITTER] [-l PERCENT] [-H HEADERS] [-A NAME]
+                    [--rua] [--timeout TIMEOUT] [-v]
 
 This is a pure Python rewrite of dafthack's MSOLSpray (https://github.com/dafthack/MSOLSpray/) which is written in PowerShell. All credit goes to him!
 
@@ -48,8 +49,10 @@ optional arguments:
                         File containing passwords, one per line.
   -o OUTFILE, --out OUTFILE
                         A file to output valid results to (default: valid_creds.txt).
-  --url [URL ...]       The URL(s) to spray against (default: https://login.microsoft.com). Potentially useful if pointing at an API Gateway URL generated
-                        with something like FireProx to randomize the IP address you are authenticating from.
+  -x PROXY, --proxy PROXY
+                        Use proxy on requests (e.g. http://127.0.0.1:8080)
+  --url URL             A comma-separated list of URL(s) to spray against (default: https://login.microsoft.com). Potentially useful if pointing at an
+                        API Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from.
   -f, --force           Forces the spray to continue and not stop when multiple account lockouts are detected.
   --shuffle             Shuffle user list.
   -a {0,1,2}, --auto-remove {0,1,2}
@@ -71,6 +74,7 @@ optional arguments:
                         Send User-Agent NAME to server (default: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
                         Chrome/58.0.3029.110 Safari/537.36").
   --rua                 Send random User-Agent in each request.
+  --timeout TIMEOUT     Timeout for requests (default: 4)
   -v, --verbose         Prints usernames that could exist in case of invalid password.
 
 EXAMPLE USAGE:
