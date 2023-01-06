@@ -430,7 +430,13 @@ for pindex, password in enumerate(passwords):
                 results += f"{username} : {password}\n"
                 results_list.append(f"{username}:{password}")
                 usernames.remove(username)
-
+            elif "AADSTS50056" in error:
+                # Invalid or null password: password doesn't exist in the directory for this user.
+                # The user should be asked to enter their password again.
+                print(
+                    f"{text_colors.yellow}WARNING! It looks like tenant is using external authentication method (e.g. Okta).{text_colors.reset}"
+                )
+                continue
             else:
                 # Unknown errors
                 print(f"Got an error we haven't seen yet for user {username}")
