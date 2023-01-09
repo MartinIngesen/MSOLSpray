@@ -384,7 +384,7 @@ for pindex, password in enumerate(passwords):
                     f"{text_colors.green}SUCCESS! {username} : {password} - NOTE: The response indicates MFA (Microsoft) is in use.{text_colors.reset}"
                 )
                 results += f"{username} : {password}\n"
-                results_list.append(f"{username}:{password}")
+                results_list.append(f"{username}:{password} - NOTE: The response indicates MFA (Microsoft) is in use")
                 usernames.remove(username)
 
             elif "AADSTS50158" in error:
@@ -393,7 +393,7 @@ for pindex, password in enumerate(passwords):
                     f"{text_colors.green}SUCCESS! {username} : {password} - NOTE: The response indicates conditional access (MFA: DUO or other) is in use.{text_colors.reset}"
                 )
                 results += f"{username} : {password}\n"
-                results_list.append(f"{username}:{password}")
+                results_list.append(f"{username}:{password} - NOTE: The response indicates conditional access (MFA: DUO or other) is in use.")
                 usernames.remove(username)
 
             elif "AADSTS50053" in error:
@@ -419,7 +419,7 @@ for pindex, password in enumerate(passwords):
                     f"{text_colors.green}SUCCESS! {username} : {password} - NOTE: The user's password is expired.{text_colors.reset}"
                 )
                 results += f"{username} : {password}\n"
-                results_list.append(f"{username}:{password}")
+                results_list.append(f"{username}:{password} - NOTE: The user's password is expired.")
                 usernames.remove(username)
 
             elif "AADSTS700016" in error:
@@ -444,7 +444,7 @@ for pindex, password in enumerate(passwords):
                     f"{text_colors.green}SUCCESS! {username} : {password} - NOTE: Access blocked by Conditional Access policies.{text_colors.reset}"
                 )
                 results += f"{username} : {password}\n"
-                results_list.append(f"{username}:{password}")
+                results_list.append(f"{username}:{password} - NOTE: Access blocked by Conditional Access policies.")
                 usernames.remove(username)
             else:
                 # Unknown errors
