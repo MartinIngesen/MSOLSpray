@@ -1,7 +1,7 @@
 # MSOLSpray Python rewrite
 **This is a pure Python rewrite of [dafthack's MSOLSpray](https://github.com/dafthack/MSOLSpray/) which is written in PowerShell. All credit goes to him!**
 
-MSOLSpray is a password spraying tool for Microsoft Online accounts (Azure/O365). The script logs if a user cred is valid, if MFA is enabled on the account, if a tenant doesn't exist, if a user doesn't exist, if the account is locked, or if the account is disabled. 
+MSOLSpray is a password spraying tool for Microsoft Online accounts (Azure/O365). The script logs if a user cred is valid, if MFA is enabled on the account, if a tenant doesn't exist, if a user doesn't exist, if the account is locked, or if the account is disabled.
 
 **BE VERY CAREFUL NOT TO LOCKOUT ACCOUNTS!**
 
@@ -27,17 +27,17 @@ pip install -r requirements.txt
 
 ### MSOLSpray
 
-You will need a userlist file with target email-addresses one per line. 
+You will need a userlist file with target email-addresses one per line.
 ```
-usage: MSOLSpray.py [-h] (-u USERNAME | -U FILE) (-p PASSWORD | -P FILE) [-o OUTFILE] [-x PROXY] [--url URL] [-f] [--shuffle] [-a {0,1,2}]
-                    [--notify NOTIFY] [--notify-actions NOTIFY_ACTIONS] [-s SLEEP] [--pause PAUSE] [-j JITTER] [-l PERCENT] [-H HEADERS] [-A NAME]
-                    [--rua] [--timeout TIMEOUT] [-v]
+usage: MSOLSpray.py [-h] (-u USERNAME | -U FILE) (-p PASSWORD | -P FILE) [-o OUTFILE] [-x PROXY] [--url URL] [-f | --force-first] [--shuffle] [-a {0,1,2}]
+                    [--notify NOTIFY] [--notify-actions NOTIFY_ACTIONS] [--notify-each] [-s SLEEP] [--pause PAUSE] [-j JITTER] [-l PERCENT] [-H HEADERS]
+                    [-A NAME] [--rua] [--timeout TIMEOUT] [-v]
 
 This is a pure Python rewrite of dafthack's MSOLSpray (https://github.com/dafthack/MSOLSpray/) which is written in PowerShell. All credit goes to him!
 
 This script will perform password spraying against Microsoft Online accounts (Azure/O365). The script logs if a user cred is valid, if MFA is enabled on the account, if a tenant doesn't exist, if a user doesn't exist, if the account is locked, or if the account is disabled.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -u USERNAME, --username USERNAME
                         Single username
@@ -51,16 +51,17 @@ optional arguments:
                         A file to output valid results to (default: valid_creds.txt).
   -x PROXY, --proxy PROXY
                         Use proxy on requests (e.g. http://127.0.0.1:8080)
-  --url URL             A comma-separated list of URL(s) to spray against (default: https://login.microsoft.com). Potentially useful if pointing at an
-                        API Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from.
+  --url URL             A comma-separated list of URL(s) to spray against (default: https://login.microsoft.com). Potentially useful if pointing at an API
+                        Gateway URL generated with something like FireProx to randomize the IP address you are authenticating from.
   -f, --force           Forces the spray to continue and not stop when multiple account lockouts are detected.
+  --force-first         Like --force but only for first iteration. Use it with '-a 2' for otimization.
   --shuffle             Shuffle user list.
   -a {0,1,2}, --auto-remove {0,1,2}
-                        Auto remove accounts from next iterations (0: valid credentials (default), 1: previous + nonexistent/disabled, 2: previous +
-                        locked).
+                        Auto remove accounts from next iterations (0: valid credentials (default), 1: previous + nonexistent/disabled, 2: previous + locked).
   --notify NOTIFY       Slack webhook for sending notifications about results (default: None).
   --notify-actions NOTIFY_ACTIONS
                         Slack webhook for sending notifications about needed actions (default: same as --notify).
+  --notify-each         If set in conjunction with --notify WEBHOOK, it will notify each valid creds besides final summary.
   -s SLEEP, --sleep SLEEP
                         Sleep this many seconds between tries (default: 0).
   --pause PAUSE         Pause (in minutes) between each iteration (default: 15).
