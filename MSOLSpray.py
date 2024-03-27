@@ -93,7 +93,7 @@ big_list_of_codes = {
     "AADSTS50135":	"PasswordChangeCompromisedPassword - Password change is required due to account risk.",
     "AADSTS50136":	"RedirectMsaSessionToApp - Single MSA session detected.",
     "AADSTS50139":	"SessionMissingMsaOAuth2RefreshToken - The session is invalid due to a missing external refresh token.",
-    "AADSTS50140":	"KmsiInterrupt - This error occurred due to "Keep me signed in" interrupt when the user was signing-in. This is an expected part of the login flow, where a user is asked if they want to remain signed into their current browser to make further logins easier. For more information, see The new Microsoft Entra sign-in and “Keep me signed in” experiences rolling out now!. You can open a support ticket with Correlation ID, Request ID, and Error code to get more details.",
+    "AADSTS50140":	"KmsiInterrupt - This error occurred due to 'Keep me signed in' interrupt when the user was signing-in. This is an expected part of the login flow, where a user is asked if they want to remain signed into their current browser to make further logins easier. For more information, see The new Microsoft Entra sign-in and 'Keep me signed in' experiences rolling out now!. You can open a support ticket with Correlation ID, Request ID, and Error code to get more details.",
     "AADSTS50143":	"Session mismatch - Session is invalid because user tenant doesn't match the domain hint due to different resource. Open a support ticket with Correlation ID, Request ID, and Error code to get more details.",
     "AADSTS50144":	"InvalidPasswordExpiredOnPremPassword - User's Active Directory password has expired. Generate a new password for the user or have the user use the self-service reset tool to reset their password.",
     "AADSTS50146":	"MissingCustomSigningKey - This app is required to be configured with an app-specific signing key. It is either not configured with one, or the key has expired or isn't yet valid. Please contact the owner of the application.",
@@ -304,7 +304,7 @@ big_list_of_codes = {
     "AADSTS1000031":	"Application {appDisplayName} can't be accessed at this time. Contact your administrator.",
     "AADSTS7000112":	"UnauthorizedClientApplicationDisabled - The application is disabled.",
     "AADSTS7000114":	"Application 'appIdentifier' isn't allowed to make application on-behalf-of calls.",
-    "AADSTS7500529":	"The value ‘SAMLId-Guid’ isn't a valid SAML ID - Microsoft Entra ID uses this attribute to populate the InResponseTo attribute of the returned response. ID must not begin with a number, so a common strategy is to prepend a string like "ID" to the string representation of a GUID. For example, id6c1c178c166d486687be4aaf5e482730 is a valid ID."
+    "AADSTS7500529":	"The value ‘SAMLId-Guid’ isn't a valid SAML ID - Microsoft Entra ID uses this attribute to populate the InResponseTo attribute of the returned response. ID must not begin with a number, so a common strategy is to prepend a string like 'ID' to the string representation of a GUID. For example, id6c1c178c166d486687be4aaf5e482730 is a valid ID."
 }
 
 description = """
