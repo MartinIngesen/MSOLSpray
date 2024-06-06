@@ -1,0 +1,10 @@
+[project]
+name = "MSOLSpray"
+version = "1.0"
+dependencies = [
+"requests",
+"argparse"
+]
+
+[project.scripts]
+MSOLSPray = "MSOLSpray:main"
